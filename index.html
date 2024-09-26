@@ -1,37 +1,104 @@
-<form enctype="multipart/form-data">
-<input id="upload" type="file" accept="text/html" name="files" size=30>
-</form>
+<body>
+  <div id="loader" hidden>
+    <div id="loading-overlay"></div>
+    <div id="loading-message">Generating data...</div>
+  </div>
 
-<textarea class="form-control" rows=35 cols=120 id="upload_file"></textarea>
-
+  <form enctype="multipart/form-data">
+    <input id="upload" type="file" accept=".csv, text/csv" name="uploads" size=30>
+  </form>
+  <div>
+    <input id="download" value='download' type='button' onclick='doDL()' disabled/>
+  </div>
+  <textarea class="form-control" rows=35 cols=120 id="upload_file" readonly></textarea>
+</body>
 <script>
-function handle_file_select( evt ) {
-    console.info ( "[Event] file chooser" );
+  let blob = null;
+  function doDL(){
+    // Create a URL for the Blob
+    const url = URL.createObjectURL(blob);
+    
+    // Create an anchor tag for downloading
+    const a = document.createElement('a');
+    
+    // Set the URL and download attribute of the anchor tag
+    a.href = url;
+    a.download = 'mox_list.csv';
+    
+    // Trigger the download by clicking the anchor tag
+    a.click();
+  }
 
-    let fl_files = evt.target.files; // JS FileList object
-
-    // use the 1st file from the list
-    let fl_file = fl_files[0];
-
-    let reader = new FileReader(); // built in API
-
-    let display_file = ( e ) => { // set the contents of the <textarea>
-        console.info( '. . got: ', e.target.result.length, e );
-        document.getElementById( 'upload_file' ).innerHTML = e.target.result;
-        };
-
-    let on_reader_load = ( fl ) => {
-        console.info( '. file reader load', fl );
-        return display_file; // a function
-        };
-
-    // Closure to capture the file information.
-    reader.onload = on_reader_load( fl_file );
-
-    // Read the file as text.
-    reader.readAsText( fl_file );
+  function parseToMoxField(content) {
+    const CARD_CONDITION = {
+      'M': 'Mint',
+      'NM': 'Near Mint',
+      'SP': 'Slightly Played',
+      'MP': 'Moderately Played',
+      'HP': 'Played',
+      'D': 'Damaged'
     }
+    const LANGUAGE = {
+      'PT': 'Portuguese',
+      'PTEN': 'Portuguese',
+      'EN': 'English'
+    }
+    const headers_moxfield = ["Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number","Alter","Proxy","Purchase Price"]
+    let mapped_data = [headers_moxfield.join(',') + "\n"]
+    content.shift()
+    content.forEach((line, n) => {
+      let row = line.split(',');
+      data = []
+      data.push(row[5])
+      data.push('')
+      data.push(row[4].replace(/ \(.*\)/im, ''))
+      data.push(row[2])
+      data.push(CARD_CONDITION[row[6]])
+      data.push(LANGUAGE[row[7]])
+      data.push(((row[10] == 'Foil') ? 'foil' : ''))
+      data.push('')
+      data.push('')
+      data.push(row[11])
+      data.push('')
+      data.push('')
+      data.push('')
+      mapped_data.push(data.join(',') + "\n")
+    })
+    blob = new Blob([mapped_data], { type: 'text/csv' });
+    return mapped_data;
+  }
 
-// add a function to call when the <input type=file> status changes, but don't "submit" the form
-document.getElementById( 'upload' ).addEventListener( 'change', handle_file_select, false );
+  function handle_file_select( evt ) {
+    document.getElementById('loader').hidden = false
+    const $output = document.getElementById('upload_file')
+    var file = this.files[0];
+
+    var reader = new FileReader();
+    reader.onload = function(progressEvent) {
+      // By lines
+      var lines = this.result.split('\n');
+      new Promise((resolve) => {
+        resolve(parseToMoxField(lines))
+      }).then((moxOutput) => {
+        $output.innerText = moxOutput;
+        document.getElementById("download").disabled = false
+        document.getElementById('loader').hidden = true
+      })
+        <!-- var output = parseToMoxField(lines); -->
+        <!-- for (var line = 0; line < lines.length; line++) { -->
+            <!--   console.log(lines[line]); -->
+            <!-- } -->
+        <!-- // Entire file -->
+        <!-- const text = this.result; -->
+        <!-- $output.innerText = text -->
+
+    };
+    reader.readAsText(file);
+  }
+  document.getElementById( 'upload' ).addEventListener('change', handle_file_select, false);
 </script>
+
+<style type="text/css">
+  #loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #000; opacity: 0.7; }
+  #loading-message { position: absolute; width: 400px; height: 100px; line-height: 100px; background-color: #fff; text-align: center; font-size: 1.2em; left: 50%; top: 50%; margin-left: -200px; margin-top: -50px; }
+</style>
