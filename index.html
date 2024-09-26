@@ -15,17 +15,10 @@
 <script>
   let blob = null;
   function doDL(){
-    // Create a URL for the Blob
     const url = URL.createObjectURL(blob);
-    
-    // Create an anchor tag for downloading
     const a = document.createElement('a');
-    
-    // Set the URL and download attribute of the anchor tag
     a.href = url;
     a.download = 'mox_list.csv';
-    
-    // Trigger the download by clicking the anchor tag
     a.click();
   }
 
@@ -44,7 +37,7 @@
       'EN': 'English'
     }
     const headers_moxfield = ["Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number","Alter","Proxy","Purchase Price"]
-    let mapped_data = [headers_moxfield.join(',') + "\n"]
+    let mapped_data = [headers_moxfield.join(',')]
     content.shift()
     content.forEach((line, n) => {
       let row = line.split(',');
@@ -62,10 +55,9 @@
       data.push('')
       data.push('')
       data.push('')
-      mapped_data.push(data.join(',') + "\n")
+      mapped_data.push(data.join(','))
     })
-    blob = new Blob([mapped_data], { type: 'text/csv' });
-    return mapped_data;
+    return mapped_data.join("\n");
   }
 
   function handle_file_select( evt ) {
@@ -80,18 +72,11 @@
       new Promise((resolve) => {
         resolve(parseToMoxField(lines))
       }).then((moxOutput) => {
+        blob = new Blob([moxOutput], { type: 'text/csv' });
         $output.innerText = moxOutput;
         document.getElementById("download").disabled = false
         document.getElementById('loader').hidden = true
       })
-        <!-- var output = parseToMoxField(lines); -->
-        <!-- for (var line = 0; line < lines.length; line++) { -->
-            <!--   console.log(lines[line]); -->
-            <!-- } -->
-        <!-- // Entire file -->
-        <!-- const text = this.result; -->
-        <!-- $output.innerText = text -->
-
     };
     reader.readAsText(file);
   }
